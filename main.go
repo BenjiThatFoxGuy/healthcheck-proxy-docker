@@ -85,11 +85,13 @@ func durationEnv(key string, fallback time.Duration) time.Duration {
 func targetFromEnv() (address string, timeout time.Duration, err error) {
 	host := env("TARGET_HOST", "localhost")
 	port := env("TARGET_PORT", "80")
-	// Allow bare integer ports while still supporting unusual values (service names, etc.)
-	if p, convErr := strconv.Atoi(port); convErr == nil {
-		if p <= 0 || p > 65535 {
-			return "", 0, errors.New("TARGET_PORT must be between 1 and 65535")
-		}
+	// Port must be a valid numeric TCP port.
+	p, convErr := strconv.Atoi(port)
+	if convErr != nil {
+		return "", 0, fmt.Errorf("TARGET_PORT must be a number, got %q: %w", port, convErr)
+	}
+	if p <= 0 || p > 65535 {
+		return "", 0, errors.New("TARGET_PORT must be between 1 and 65535")
 	}
 	timeout = durationEnv("TIMEOUT", 2*time.Second)
 	if timeout <= 0 {
