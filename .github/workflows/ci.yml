@@ -29,21 +29,36 @@ jobs:
           # Should start and be killable (not exit immediately)
           timeout 2 /tmp/wait-for-health-check hold || true
 
-      - name: Test probe against closed port (exit 1)
+      - name: Test probe against closed port (expect exit 1)
         run: |
-          TARGET_PORT=9999 /tmp/wait-for-health-check probe; echo "exit=$?"
+          set +e
+          TARGET_PORT=9999 /tmp/wait-for-health-check probe
+          code=$?
+          set -e
+          echo "exit=$code"
+          if [ "$code" -eq 2 ]; then echo "::error::probe exited with code 2 for closed port (should be 1)"; exit 1; fi
 
-      - name: Test probe mode exit code (should be 0 or 1, not 2)
+      - name: Test probe mode exit code (must be 0 or 1, never 2)
         run: |
-          /tmp/wait-for-health-check probe; code=$?; echo "exit=$code"; if [ "$code" -eq 2 ]; then echo "::error::probe exited with code 2"; exit 1; fi
+          set +e
+          /tmp/wait-for-health-check probe
+          code=$?
+          set -e
+          echo "exit=$code"
+          if [ "$code" -eq 2 ]; then echo "::error::probe exited with code 2"; exit 1; fi
 
-      - name: Test invalid TARGET_PORT (should not crash with code 2)
+      - name: Test invalid TARGET_PORT (should exit 2 with error)
         run: |
-          TARGET_PORT=notanumber /tmp/wait-for-health-check probe 2>&1; code=$?; echo "exit=$code"
+          set +e
+          TARGET_PORT=notanumber /tmp/wait-for-health-check probe 2>&1
+          code=$?
+          set -e
+          echo "exit=$code"
+          if [ "$code" -ne 2 ]; then echo "::error::expected exit code 2 for bad TARGET_PORT, got $code"; exit 1; fi
 
-      - name: Test wait mode against reachable localhost
+      - name: Test wait mode against reachable localhost (expect exit 0 or timeout=124)
         run: |
-          timeout 5 /tmp/wait-for-health-check || true
+          timeout 5 /tmp/wait-for-health-check || code=$?; echo "exit=${code:-0}"
 
   docker-build:
     name: Docker build (multi-arch)
