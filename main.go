@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -24,7 +26,9 @@ func main() {
 	switch mode {
 	case "hold":
 		// Long-lived container process. Docker HEALTHCHECK runs separately.
-		select {}
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		<-sig
 
 	case "probe", "daemon":
 		// One probe attempt; intended for Docker HEALTHCHECK.
