@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docker-build:
+    name: Docker build (multi-arch)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build the image for common platforms to ensure the Dockerfile stays portable.
+      # (We don't push yet — this is just a verification build.)
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: healthcheck-proxy-docker:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
