@@ -35,7 +35,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ tolower(github.repository) }}:latest
-            ghcr.io/${{ tolower(github.repository) }}:${{ github.sha }}
+            ghcr.io/${{ toLower(github.repository) }}:latest
+            ghcr.io/${{ toLower(github.repository) }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
