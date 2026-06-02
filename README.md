@@ -13,15 +13,31 @@ A **single Go binary, ~2MB**, zero-dependency container that watches a TCP targe
 
 ## How it works
 
-```
+```text
 redis:6379
-    │
-    ▼
-redis-watcher  ──►  HEALTHY (when redis reachable)
-    │
-    ▼
+  │
+  ▼
+redis-watcher ──► HEALTHY (when redis reachable)
+  │
+  ▼
 app: depends_on redis-watcher: condition: service_healthy
 ```
+
+## Quick start
+
+The prebuilt image is available on GHCR:
+
+```bash
+docker run -d ghcr.io/benjithatfoxguy/healthcheck-proxy-docker:latest
+```
+
+For local development or on-demand builds, you can also build from source:
+
+```bash
+docker build -t healthcheck-proxy-docker .
+```
+
+**Note:** Building from source is only necessary for local development. Use the GHCR image for production and all other use cases.
 
 ## Usage
 
@@ -31,11 +47,11 @@ services:
     image: redis:7-alpine
 
   redis-watcher:
-    build: .
+    image: ghcr.io/benjithatfoxguy/healthcheck-proxy-docker:latest
     environment:
       TARGET_HOST: redis
       TARGET_PORT: "6379"
-      TIMEOUT: 2s       # per-attempt timeout (default 2s)
+      TIMEOUT: 2s # per-attempt timeout (default 2s)
     networks: [shared-net]
 
   app:
@@ -45,6 +61,35 @@ services:
         condition: service_healthy
     networks: [shared-net]
 ```
+
+## Augmenting existing services
+
+Wait-for-health-check is also useful within a single Compose project to add health reporting to services that don't provide their own `HEALTHCHECK` — without forking their image or building a custom sidecar. Drop a watcher alongside any service and use `depends_on: condition: service_healthy` to gate your own workloads:
+
+```yaml
+services:
+  legacy-service:
+    image: my-org/proprietary-app:3.1
+    # no HEALTHCHECK provided by the upstream image
+
+  legacy-service-watcher:
+    image: ghcr.io/benjithatfoxguy/healthcheck-proxy-docker:latest
+    environment:
+      TARGET_HOST: legacy-service
+      TARGET_PORT: "8080"
+    depends_on:
+      - legacy-service
+    networks: [app-net]
+
+  my-app:
+    build: .
+    depends_on:
+      legacy-service-watcher:
+        condition: service_healthy
+    networks: [app-net]
+```
+
+This works for proprietary images, legacy containers, or any service from a registry you don't control — no fork required.
 
 ## Configuration
 
