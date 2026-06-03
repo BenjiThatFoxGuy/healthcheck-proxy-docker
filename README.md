@@ -78,3 +78,4 @@ Final image is `scratch` (empty) - just the static Go binary. ~2MB.
 ## License
 
 MIT
+
